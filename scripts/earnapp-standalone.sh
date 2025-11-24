@@ -7,16 +7,46 @@ BIN_PATH="${EARNAPP_BIN:-/usr/local/bin/earnapp}"
 DOWNLOAD_DIR="${EARNAPP_DOWNLOAD:-/tmp}"
 LOG_FILE="${EARNAPP_LOG:-$DATA_DIR/earnapp.log}"
 RESTART_DELAY="${EARNAPP_RESTART_DELAY:-30}"
+VERSION="${EARNAPP_VERSION:-1.585.464}"
+BASE_URL="${EARNAPP_BASE_URL:-https://cdn-earnapp.b-cdn.net/static}"
+PRODUCT="${EARNAPP_PRODUCT:-}" # earns "piggybox" when detected, otherwise "earnapp"
+LCONF="${EARNAPP_VER_CONF:-/etc/earnapp/ver_conf.json}"
 
 mkdir -p "$DATA_DIR" "$DOWNLOAD_DIR" "$(dirname "$BIN_PATH")"
 
 detect_arch() {
     case "$(uname -m)" in
-        x86_64|amd64) echo "bin_64" ;;
+        x86_64|amd64) echo "x64" ;;
         aarch64|arm64) echo "aarch64" ;;
-        armv7l|armv6l) echo "armv7" ;;
-        *) echo "armv7" ;;
+        armv7l|armv6l) echo "arm7l" ;;
+        *) echo "arm7l" ;;
     esac
+}
+
+detect_product() {
+    if [ -n "$PRODUCT" ]; then
+        echo "$PRODUCT"
+        return
+    fi
+
+    if [ -f "$LCONF" ] && grep -q "appid" "$LCONF" 2>/dev/null && grep -q "piggy" "$LCONF" 2>/dev/null; then
+        echo "piggybox"
+    else
+        echo "earnapp"
+    fi
+}
+
+detect_ssl_suffix() {
+    if command -v openssl >/dev/null 2>&1; then
+        case "$(openssl version 2>/dev/null || echo '')" in
+            OpenSSL\ 3*)
+                echo "-ssl3"
+                return
+                ;;
+        esac
+    fi
+
+    echo ""
 }
 
 install_binary() {
@@ -24,14 +54,35 @@ install_binary() {
         return
     fi
 
-    archive_name=$(detect_arch)
-    tmp_path="$DOWNLOAD_DIR/earnapp"
-    if ! wget -cq --no-check-certificate "https://brightdata.com/static/earnapp/$archive_name" -O "$tmp_path"; then
-        echo "Failed to download earnapp binary for $(uname -m)" >&2
+    arch_suffix=$(detect_arch)
+    product=$(detect_product)
+    ssl_suffix=$(detect_ssl_suffix)
+    file_name="${product}${ssl_suffix}-${arch_suffix}-${VERSION}"
+    download_dest="$DOWNLOAD_DIR/${product}_${VERSION}"
+
+    echo "Downloading ${file_name} from ${BASE_URL}/${file_name}" >&2
+
+    if command -v wget >/dev/null 2>&1; then
+        wget -O "$download_dest" "${BASE_URL}/${file_name}" || {
+            echo "Download failed (wget)." >&2
+            exit 1
+        }
+    elif command -v curl >/dev/null 2>&1; then
+        curl -fSL -o "$download_dest" "${BASE_URL}/${file_name}" || {
+            echo "Download failed (curl)." >&2
+            exit 1
+        }
+    else
+        echo "Neither wget nor curl found. Please install one of them." >&2
         exit 1
     fi
-    chmod +x "$tmp_path"
-    mv "$tmp_path" "$BIN_PATH"
+
+    chmod +x "$download_dest" || {
+        echo "Could not mark ${download_dest} as executable." >&2
+        exit 1
+    }
+
+    mv "$download_dest" "$BIN_PATH"
 }
 
 initialize_data_dir() {

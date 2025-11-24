@@ -84,6 +84,8 @@ helper to download the EarnApp binary and keep it running in a simple restart lo
 - Binary location: `/usr/local/bin/earnapp` (override with `EARNAPP_BIN`)
 - Log file: `/etc/earnapp/earnapp.log` (override with `EARNAPP_LOG`)
 - Restart delay: 30 seconds between retries (override with `EARNAPP_RESTART_DELAY`)
+- Download source/version: defaults to EarnApp CDN version `1.585.464` (override with `EARNAPP_BASE_URL`/`EARNAPP_VERSION`)
+- Product detection: auto-picks `piggybox` if `/etc/earnapp/ver_conf.json` contains piggy config (override with `EARNAPP_PRODUCT`)
 
 The script keeps `earnapp run` alive, automatically restarts it if it exits, and writes
 basic restart messages to the log file.
