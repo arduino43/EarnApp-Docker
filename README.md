@@ -23,7 +23,22 @@ git clone https://github.com/fazalfarhan01/earnapp_docker.git
     - `docker run -d -e EARNAPP_UUID='sdk-node-XXXXXXXXXXXXXXXXXXX'  --name earnapp fazalfarhan01/earnapp:lite`
 3. Get the UUID
     - `docker exec -it earnapp showid`
-4. Copy and paste the app `UUID` in the [EarnApp Dashboard](https://earnapp.com/dashboard) 
+4. Copy and paste the app `UUID` in the [EarnApp Dashboard](https://earnapp.com/dashboard)
+
+### _Running without Docker (bare metal)_
+The repository now includes a small helper script for Debian and BusyBox style systems where Docker or systemd may not be available.
+
+1. Copy the installer to your machine and run it as root:
+   ```bash
+   curl -fsSL https://raw.githubusercontent.com/fazalfarhan01/earnapp_docker/work/scripts/host-install.sh -o /tmp/host-install.sh
+   sh /tmp/host-install.sh
+   ```
+   Set `EARNAPP_UUID` in the environment beforehand if you already have a node ID:
+   ```bash
+   EARNAPP_UUID=sdk-node-XXXXXXXXXXXXXXXXXXX sh /tmp/host-install.sh
+   ```
+2. If `systemd` is available the script installs and starts a persistent `earnapp.service`. On BusyBox or other non-systemd hosts it creates `/usr/local/bin/earnapp-daemon`; start it manually (for example `nohup /usr/local/bin/earnapp-daemon >/var/log/earnapp.log 2>&1 &`).
+3. If you did not provide a UUID, run `earnapp showid` after installation and register that ID in the [EarnApp Dashboard](https://earnapp.com/dashboard).
 
 ### Compose
 1. Make a new directory, create a file named `docker-compose.yml` and paste the following into it.
